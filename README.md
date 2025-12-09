@@ -117,7 +117,7 @@ A single `/feed` request behaves as follows:
 4. **If cache miss:**
 
    * Recommender → fetch user history & embeddings
-   * Generate top 200–300 candidates
+   * Generate top 200-300 candidates
    * Redis SET with TTL
 5. API → rank(candidates)
 6. Return top-K reels with scores + reasons
