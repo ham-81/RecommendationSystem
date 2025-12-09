@@ -214,7 +214,7 @@ Used for:
 * **Week 3:** Initial ML model
 * **Week 4:** Backend development
 * **Week 5:** Flutter UI prototype
-* **Week 6:** Frontend–backend integration
+* **Week 6:** Frontend-backend integration
 * **Week 7:** Model tuning & exploration logic
 * **Week 8:** Testing + bug fixes
 * **Week 9:** Final presentation & documentation
