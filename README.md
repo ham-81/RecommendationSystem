@@ -1,3 +1,5 @@
+---
+
 #  Reel Recommendation System
 
 *A Hybrid ML-Based Personalized Reels Recommendation System (Feed Engine)*
@@ -142,7 +144,7 @@ Uses the hybrid score:
 | Component        | Meaning                             |
 | ---------------- | ----------------------------------- |
 | **Scontent**     | Cosine similarity using embeddings  |
-| **SCF**          | Item–item similarity from CF matrix |
+| **SCF**          | Item-item similarity from CF matrix |
 | **Spopularity**  | Likes, views, recency               |
 | **Sexploration** | Diversity injection                 |
 
