@@ -1,5 +1,3 @@
----
-
 #  Reel Recommendation System
 
 *A Hybrid ML-Based Personalized Reels Recommendation System (Feed Engine)*
