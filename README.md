@@ -128,10 +128,10 @@ A single `/feed` request behaves as follows:
 
 ## ML Recommendation Pipeline
 
-### **Stage 1 - Candidate Generation (200–300 reels)**
+### **Stage 1 - Candidate Generation (200-300 reels)**
 
 * Content-based similarity
-* Item–item collaborative filtering
+* Item-item collaborative filtering
 * Popularity scoring
 * Cache results in Redis (TTL ~5 min)
 
