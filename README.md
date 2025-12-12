@@ -49,7 +49,7 @@ Our solution aims to build a **transparent and efficient** ML-based reel recomme
 * Reel metadata & embeddings
 * Location and popularity trends
 
-This ensures **fairness**, **freshness**, **accuracy**, and **low latency**—making the platform usable for both **new** and **active** users.
+This ensures **fairness**, **freshness**, **accuracy**, and **low latency**, making the platform usable for both **new** and **active** users.
 
 ---
 
