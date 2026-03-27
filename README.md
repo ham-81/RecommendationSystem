@@ -74,14 +74,14 @@ Top-K Recommendations
 
 
 ## 📅 Project Timeline (Summary)
--Week 1–2: Research + Dataset
--Week 3: ML model
--Week 4: Backend
--Week 5: Frontend
--Week 6: Integration
--Week 7: Optimization
--Week 8: Testing
--Week 9: Final delivery
+- Week 1–2: Research + Dataset
+- Week 3: ML model
+- Week 4: Backend
+- Week 5: Frontend
+- Week 6: Integration
+- Week 7: Optimization
+- Week 8: Testing
+- Week 9: Final delivery
 
 ## 👨‍💻 Team
 
