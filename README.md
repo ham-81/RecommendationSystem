@@ -1,10 +1,10 @@
-# 🎥 Reel Recommendation System
+#  Reel Recommendation System
 
 A full-stack machine learning project that replicates modern short-video recommendation systems (like Instagram Reels / YouTube Shorts) using a **DSSM-based deep learning model + FAISS retrieval**, integrated with a **Flutter frontend and FastAPI backend**.
 
 ---
 
-## 📌 Overview
+## Overview
 
 Modern recommendation systems are often:
 - ❌ Opaque  
@@ -16,14 +16,14 @@ This project solves that by building a **transparent, modular, and efficient rec
 
 ---
 
-## 🎯 Problem Statement
+## Problem Statement
 
 > Existing social media platforms provide limited control and transparency over recommendations.  
 > New users receive irrelevant content, while existing users often face repetitive suggestions.
 
 ---
 
-## 💡 Proposed Solution
+## Proposed Solution
 
 We developed a **Reel Recommendation System** that:
 
@@ -31,12 +31,12 @@ We developed a **Reel Recommendation System** that:
 - Uses **deep neural networks (DSSM)** for personalization
 - Retrieves recommendations efficiently using **FAISS**
 - Supports both:
-  - 🆕 New users (cold start)
-  - 🔁 Returning users (behavior-based recommendations)
+  - New users (cold start)
+  - Returning users (behavior-based recommendations)
 
 ---
 
-## 🏗️ System Architecture
+## System Architecture
 
 Frontend (Flutter)
 ↓
@@ -50,7 +50,7 @@ Top-K Recommendations
 
 ---
 
-## ⚙️ Tech Stack
+## Tech Stack
 
 ### 🔹 Frontend
 - Flutter (Reel-style UI)
@@ -70,10 +70,10 @@ Top-K Recommendations
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 
-## 📅 Project Timeline (Summary)
+## Project Timeline (Summary)
 - Week 1–2: Research + Dataset
 - Week 3: ML model
 - Week 4: Backend
@@ -83,7 +83,7 @@ Top-K Recommendations
 - Week 8: Testing
 - Week 9: Final delivery
 
-## 👨‍💻 Team
+## Team
 
 Mentees: 
 - Adhithya S R
@@ -98,7 +98,7 @@ Mentors:
 - Hanna Abdul Majeed
 - Shreyan
 
-## 💬 Final Note
+## Final Note
 
 This project demonstrates a complete end-to-end recommendation system, combining:
 
