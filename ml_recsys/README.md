@@ -24,8 +24,6 @@ User interactions → Sequence generation → DSSM training → FAISS indexing �
 - Supports new & returning users
 - API-based real-time recommendations
 
----
-
 ## Model Details
 
 ### DSSM Architecture
