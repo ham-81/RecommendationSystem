@@ -1,5 +1,7 @@
 # Reel Recommendation System (DSSM + FAISS)
 
+---
+
 This project implements a video recommendation system using the MicroLens-100k dataset.
 
 ## Features
@@ -51,3 +53,4 @@ python -m ml.preprocessing.build_sequences
 python -m ml.training.train_dssm
 python -m ml.inference.build_faiss_index
 python -m ml.inference.recommend
+python -m ml.evaluation.evalute
