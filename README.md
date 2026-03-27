@@ -102,11 +102,11 @@ Mentors:
 
 This project demonstrates a complete end-to-end recommendation system, combining:
 
-Deep learning
-Efficient retrieval
-Real-time serving
-Full-stack integration
+- Deep learning
+- Efficient retrieval
+- Real-time serving
+- Full-stack integration
 
 ---
 
-## ⭐ Feel free to explore and build on top of it!!!
+⭐ Feel free to explore and build on top of it!!!
