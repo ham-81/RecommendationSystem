@@ -86,17 +86,17 @@ Top-K Recommendations
 ## 👨‍💻 Team
 
 Mentees: 
-Adhithya S R
-Ashutosh Gupta
-Darshan Sai Naath
-Shashank Gupta
+- Adhithya S R
+- Ashutosh Gupta
+- Darshan Sai Naath
+- Shashank Gupta
 
 Mentors:
 
-Aryan
-Dhruva Vinod
-Hanna Abdul Majeed
-Shreyan
+- Aryan
+- Dhruva Vinod
+- Hanna Abdul Majeed
+- Shreyan
 
 ## 💬 Final Note
 
@@ -107,4 +107,6 @@ Efficient retrieval
 Real-time serving
 Full-stack integration
 
-## ⭐ Feel free to explore and build on top of it!
+---
+
+## ⭐ Feel free to explore and build on top of it!!!
