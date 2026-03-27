@@ -4,7 +4,7 @@ import torch.nn.functional as F
 
 class DSSM_VIDREC(nn.Module):
 
-    def __init__(self, video_embedding_dim=2816, hidden_dim=512, output_dim=128):
+    def __init__(self, video_embedding_dim = 2816, hidden_dim = 512, output_dim = 128):
 
         super().__init__()
 
@@ -30,19 +30,14 @@ class DSSM_VIDREC(nn.Module):
         self.user_projection = nn.Linear(hidden_dim, output_dim)
 
 
-    # User Encoder
-    def encode_user(self, sequence_embeddings):
-
-        outputs, _ = self.user_gru(sequence_embeddings)
-
-        # Attention weights
-        attn_weights = torch.softmax(self.attention(outputs), dim=1)
-
-        # Weighted sum
-        context = torch.sum(attn_weights * outputs, dim=1)
-
+    def encode_user(self, seq):
+        # seq: (batch_size, seq_len, embed_dim)
+        gru_out, _ = self.user_gru(seq)  
+        # (batch_size, seq_len, hidden_dim)
+        attn_scores = self.attention(gru_out)  # (batch, seq_len, 1)
+        attn_weights = torch.softmax(attn_scores, dim=1)
+        context = torch.sum(gru_out * attn_weights, dim=1)
         user_vec = self.user_projection(context)
-
         user_vec = F.normalize(user_vec, dim=1)
 
         return user_vec
