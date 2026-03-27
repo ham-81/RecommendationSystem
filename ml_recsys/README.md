@@ -14,29 +14,19 @@ This project implements a video recommendation system using the MicroLens-100k d
 
 User interactions → Sequence generation → DSSM training → FAISS indexing → Recommendations
 
-## Run
+## Key Features
 
-```bash
-python -m ml.scripts.inspect_dataset
-python -m ml.preprocessing.build_sequences
-python -m ml.training.train_dssm
-python -m ml.inference.build_faiss_index
-python -m ml.inference.recommend
-
-
-## 🔥 Key Features
-
-- 🎯 Multimodal embeddings (image + video + text)
-- 🧠 DSSM dual-tower architecture
-- 🔁 Sequential modeling (GRU + Attention)
-- ⚡ FAISS-based fast retrieval
-- 📊 Evaluation with Precision@K, Recall@K, NDCG@K
-- 👥 Supports new & returning users
-- 📱 API-based real-time recommendations
+- Multimodal embeddings (image + video + text)
+- DSSM dual-tower architecture
+- Sequential modeling (GRU + Attention)
+- FAISS-based fast retrieval
+- Evaluation with Precision@K, Recall@K, NDCG@K
+- Supports new & returning users
+- API-based real-time recommendations
 
 ---
 
-## 📊 Model Details
+## Model Details
 
 ### DSSM Architecture
 - User Tower → GRU + Attention
@@ -47,10 +37,19 @@ python -m ml.inference.recommend
 - Margin-based ranking loss  
 - Temporal data split (no leakage)  
 
-## 📈 Evaluation Metrics
+## Evaluation Metrics
 
 - **Precision@K** → recommendation accuracy  
 - **Recall@K** → coverage of relevant items  
 - **NDCG@K** → ranking quality  
 
 ---
+
+## Run
+
+```bash
+python -m ml.scripts.inspect_dataset
+python -m ml.preprocessing.build_sequences
+python -m ml.training.train_dssm
+python -m ml.inference.build_faiss_index
+python -m ml.inference.recommend
