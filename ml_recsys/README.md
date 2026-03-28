@@ -6,18 +6,6 @@ This project implements a video recommendation system using the MicroLens-100k d
 
 ## Features
 
-- Multimodal embeddings (image, video, text)
-- DSSM dual-tower architecture
-- Sequential user modeling (GRU + Attention)
-- FAISS-based fast retrieval
-- Top-K reel recommendation
-
-## Pipeline
-
-User interactions → Sequence generation → DSSM training → FAISS indexing → Recommendations → Evaluate
-
-## Key Features
-
 - Multimodal embeddings (image + video + text)
 - DSSM dual-tower architecture
 - Sequential modeling (GRU + Attention)
@@ -25,6 +13,10 @@ User interactions → Sequence generation → DSSM training → FAISS indexing �
 - Evaluation with Precision@K, Recall@K, NDCG@K
 - Supports new & returning users
 - API-based real-time recommendations
+
+## Pipeline
+
+User interactions → Sequence generation → DSSM training → FAISS indexing → Recommendations → Evaluate
 
 ## Model Details
 
