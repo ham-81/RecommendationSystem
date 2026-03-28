@@ -14,7 +14,7 @@ This project implements a video recommendation system using the MicroLens-100k d
 
 ## Pipeline
 
-User interactions → Sequence generation → DSSM training → FAISS indexing → Recommendations
+User interactions → Sequence generation → DSSM training → FAISS indexing → Recommendations → Evaluate
 
 ## Key Features
 
