@@ -38,15 +38,15 @@ We developed a **Reel Recommendation System** that:
 
 ## System Architecture
 
-Frontend (Flutter)
-↓
-FastAPI Backend
-↓
-DSSM Model (User + Item Embeddings)
-↓
-FAISS Index (Fast Retrieval)
-↓
-Top-K Recommendations
+         Frontend (Flutter)
+                  ↓
+         FastAPI Backend
+                  ↓
+     DSSM Model (User + Item Embeddings)
+                  ↓
+         FAISS Index (Fast Retrieval)
+                  ↓
+         Top-K Recommendations
 
 ---
 
