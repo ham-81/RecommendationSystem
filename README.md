@@ -109,4 +109,4 @@ This project demonstrates a complete end-to-end recommendation system, combining
 
 ---
 
-⭐ Feel free to explore and build on top of it!!!
+*⭐ Feel free to explore and build on top of it!!!*
