@@ -1,0 +1,18 @@
+# Python cache
+__pycache__/
+*.pyc
+
+# Virtual environment
+venv/
+
+# Large ML files
+*.pth
+*.faiss
+
+# Dataset files
+data/
+
+# IDE files
+.vscode/
+.DS_Store
+Thumbs.db
