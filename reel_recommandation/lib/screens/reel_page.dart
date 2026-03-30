@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'dart:async';
 
 class ReelPage extends StatefulWidget {
   const ReelPage({super.key});
@@ -12,17 +15,8 @@ class _ReelPageState extends State<ReelPage> {
   late final PageController _pageController;
 
   int currentReelIndex = 0;
-
-  final List<int> reels = List.generate(20, (index) => index);
-
-  final List<String> videoPaths = [
-    'assets/videos/reel1.mp4',
-    'assets/videos/reel2.mp4',
-    'assets/videos/reel3.mp4',
-    'assets/videos/reel4.mp4',
-    'assets/videos/reel5.mp4',
-    'assets/videos/reel6.mp4',
-  ];
+  List<Map<String, dynamic>> reels = [];
+  bool isLoading = true;
 
   final Map<int, VideoPlayerController> _controllers = {};
   final Map<int, bool> likedReels = {};
@@ -32,30 +26,43 @@ class _ReelPageState extends State<ReelPage> {
   void initState() {
     super.initState();
     _pageController = PageController();
+    fetchReels();
+  }
 
-    // Load first reel ONLY (no autoplay)
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _initController(0);
-      _preloadReel(1);
+  // ---------------- API ----------------
+
+ Future<void> fetchReels() async {
+  try {
+    final response = await http.get(
+      Uri.parse("http://localhost:8000/api/reels/feed"),
+    ).timeout(const Duration(seconds: 5));
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      setState(() {
+        reels = List<Map<String, dynamic>>.from(data["data"]);
+        isLoading = false;
+      });
+    } else {
+      setState(() => isLoading = false);
+    }
+  } catch (e) {
+    debugPrint("ERROR: $e");
+    setState(() {
+      isLoading = false;
     });
   }
-
-  @override
-  void dispose() {
-    for (final controller in _controllers.values) {
-      controller.dispose();
-    }
-    _pageController.dispose();
-    super.dispose();
-  }
-
+}
   // ---------------- VIDEO CONTROL ----------------
 
   Future<void> _initController(int index) async {
     if (_controllers.containsKey(index)) return;
+    if (index >= reels.length) return;
 
-    final controller = VideoPlayerController.asset(
-      videoPaths[index % videoPaths.length],
+    final videoUrl = reels[index]["video_url"];
+
+    final controller = VideoPlayerController.networkUrl(
+      Uri.parse(videoUrl),
     );
 
     controller.addListener(() {
@@ -87,19 +94,41 @@ class _ReelPageState extends State<ReelPage> {
 
   void _onPageChanged(int index) {
     _pauseAll();
+    setState(() => currentReelIndex = index);
+    _initController(index);
+    _preloadReel(index + 1);
+  }
 
-    setState(() {
-      currentReelIndex = index;
-    });
-
-    _initController(index);      // load only
-    _preloadReel(index + 1);     // preload next
+  @override
+  void dispose() {
+    for (final controller in _controllers.values) {
+      controller.dispose();
+    }
+    _pageController.dispose();
+    super.dispose();
   }
 
   // ---------------- UI ----------------
 
   @override
   Widget build(BuildContext context) {
+    if (isLoading) {
+      return const Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(child: CircularProgressIndicator(color: Colors.white)),
+      );
+    }
+
+    if (reels.isEmpty) {
+      return const Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(
+          child: Text("No reels found",
+              style: TextStyle(color: Colors.white)),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.black,
       body: PageView.builder(
@@ -117,15 +146,13 @@ class _ReelPageState extends State<ReelPage> {
   Widget _buildReelItem(int index) {
     final isLiked = likedReels[index] ?? false;
     final isSaved = savedReels[index] ?? false;
+    final caption = reels[index]["caption"] ?? "";
 
     return GestureDetector(
       onTap: () async {
         await _initController(index);
         final c = _controllers[index];
         if (c == null || !c.value.isInitialized) return;
-
-        
-
         setState(() {
           c.value.isPlaying ? c.pause() : c.play();
         });
@@ -187,25 +214,25 @@ class _ReelPageState extends State<ReelPage> {
                   end: Alignment.bottomCenter,
                   colors: [
                     Colors.transparent,
-                    Colors.black.withOpacity(0.9),
+                    Colors.black.withValues(alpha: .5),
                   ],
                 ),
               ),
-              child: const Column(
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
+                  const Text(
                     'user_1 • Follow',
                     style: TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  SizedBox(height: 8),
+                  const SizedBox(height: 8),
                   Text(
-                    'Amazing reel content 🎬 #reels #flutter',
-                    style: TextStyle(color: Colors.white, fontSize: 13),
+                    caption,
+                    style: const TextStyle(color: Colors.white, fontSize: 13),
                   ),
                 ],
               ),

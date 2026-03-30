@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'dart:async';
 
 class ReelsPage extends StatefulWidget {
   const ReelsPage({super.key});
@@ -9,10 +12,10 @@ class ReelsPage extends StatefulWidget {
 
 class _ReelsPageState extends State<ReelsPage> {
   late PageController _pageController;
-  List<int> reels = [];
+  List<Map<String, dynamic>> reels = [];
   int currentReelIndex = 0;
-  
-  // Track liked/saved status for each reel
+  bool isLoading = true;
+
   Map<int, bool> likedReels = {};
   Map<int, bool> savedReels = {};
 
@@ -21,7 +24,7 @@ class _ReelsPageState extends State<ReelsPage> {
     super.initState();
     _pageController = PageController();
     _pageController.addListener(_onPageChanged);
-    _loadReels();
+    fetchReels();
   }
 
   @override
@@ -36,20 +39,47 @@ class _ReelsPageState extends State<ReelsPage> {
     });
   }
 
-  void _loadReels() {
-    List<int> newReels = [];
-    for (int i = 0; i < 20; i++) {
-      newReels.add(i);
-      likedReels[i] = false;
-      savedReels[i] = false;
+ Future<void> fetchReels() async {
+  try {
+    final response = await http.get(
+      Uri.parse("http://localhost:8000/api/reels/feed"),
+    ).timeout(const Duration(seconds: 5));
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      setState(() {
+        reels = List<Map<String, dynamic>>.from(data["data"]);
+        isLoading = false;
+      });
+    } else {
+      setState(() => isLoading = false);
     }
+  } catch (e) {
+    debugPrint("ERROR: $e");
     setState(() {
-      reels = newReels;
+      isLoading = false;
     });
   }
-
+}
   @override
   Widget build(BuildContext context) {
+    if (isLoading) {
+      return const Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(child: CircularProgressIndicator(color: Colors.white)),
+      );
+    }
+
+    if (reels.isEmpty) {
+      return const Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(
+          child: Text("No reels found",
+              style: TextStyle(color: Colors.white)),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.black,
       body: PageView.builder(
@@ -64,6 +94,9 @@ class _ReelsPageState extends State<ReelsPage> {
   }
 
   Widget _buildReelItem(int index) {
+    final reel = reels[index];
+    final caption = reel["caption"] ?? "";
+    final reelId = reel["id"] ?? index + 1;
     bool isLiked = likedReels[index] ?? false;
     bool isSaved = savedReels[index] ?? false;
 
@@ -86,18 +119,26 @@ class _ReelsPageState extends State<ReelsPage> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
+                const Icon(
                   Icons.play_circle_outline,
                   color: Colors.white,
                   size: 80,
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'Reel ${index + 1}',
+                  caption,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'ID: $reelId',
+                  style: TextStyle(
+                    color: Colors.grey[400],
+                    fontSize: 14,
                   ),
                 ),
               ],
@@ -111,7 +152,6 @@ class _ReelsPageState extends State<ReelsPage> {
           bottom: 100,
           child: Column(
             children: [
-              // Like Button
               GestureDetector(
                 onTap: () {
                   setState(() {
@@ -125,16 +165,12 @@ class _ReelsPageState extends State<ReelsPage> {
                 ),
               ),
               const SizedBox(height: 24),
-
-              // Comment Button
-              _buildActionButton(Icons.chat_bubble_outline, '324', Colors.white),
+              _buildActionButton(
+                  Icons.chat_bubble_outline, '324', Colors.white),
               const SizedBox(height: 24),
-
-              // Share Button
-              _buildActionButton(Icons.share_outlined, 'Share', Colors.white),
+              _buildActionButton(
+                  Icons.share_outlined, 'Share', Colors.white),
               const SizedBox(height: 24),
-
-              // Save Button
               GestureDetector(
                 onTap: () {
                   setState(() {
@@ -144,7 +180,7 @@ class _ReelsPageState extends State<ReelsPage> {
                 child: _buildActionButton(
                   isSaved ? Icons.bookmark : Icons.bookmark_outline,
                   'Save',
-                  isSaved ? Colors.white : Colors.white,
+                  Colors.white,
                 ),
               ),
             ],
@@ -157,14 +193,11 @@ class _ReelsPageState extends State<ReelsPage> {
           left: 0,
           right: 0,
           child: Container(
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [
-                  Colors.transparent,
-                  Colors.black,
-                ],
+                colors: [Colors.transparent, Colors.black],
               ),
             ),
             padding: const EdgeInsets.fromLTRB(16, 40, 16, 20),
@@ -172,7 +205,6 @@ class _ReelsPageState extends State<ReelsPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                // User Info
                 Row(
                   children: [
                     CircleAvatar(
@@ -209,10 +241,8 @@ class _ReelsPageState extends State<ReelsPage> {
                   ],
                 ),
                 const SizedBox(height: 12),
-
-                // Caption
                 Text(
-                  'Amazing reel content! 🎬 #reels #trending',
+                  caption,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 13,
