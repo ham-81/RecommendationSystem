@@ -39,6 +39,7 @@ dependencies:
   form_validator: ^2.1.1
   file_picker: ^10.3.8
   flutter_native_splash: ^2.4.7
+  image_picker: ^1.2.1
 
 dev_dependencies:
   flutter_test:

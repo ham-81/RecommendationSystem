@@ -71,7 +71,9 @@ class _LoginPageState extends State<LoginPage> {
                           width: double.infinity,
                           child: ElevatedButton(
                             onPressed: () {
-                              Navigator.pushReplacementNamed(context, AppRoutes.home);
+                              if (_form.currentState!.validate()) {
+                                // login logic here
+                              }
                             },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: followButton,

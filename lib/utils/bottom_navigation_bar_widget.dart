@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:reel_recommandation/screens/home_page.dart';
 import 'package:reel_recommandation/screens/notification_screen.dart';
-import 'package:reel_recommandation/screens/profile_page.dart';
+import 'package:reel_recommandation/screens/profile/profile_page.dart';
 import 'package:reel_recommandation/screens/reel_page.dart';
 import 'package:reel_recommandation/screens/search_screen.dart';
 
