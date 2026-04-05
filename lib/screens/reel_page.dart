@@ -25,6 +25,8 @@ class _ReelPageState extends State<ReelPage> {
   ];
 
   final Map<int, VideoPlayerController> _controllers = {};
+  final Map<int, bool> likedReels = {};
+  final Map<int, bool> savedReels = {};
 
   @override
   void initState() {
@@ -90,8 +92,8 @@ class _ReelPageState extends State<ReelPage> {
       currentReelIndex = index;
     });
 
-    _initController(index); // load only
-    _preloadReel(index + 1); // preload next
+    _initController(index);      // load only
+    _preloadReel(index + 1);     // preload next
   }
 
   // ---------------- UI ----------------
@@ -113,8 +115,8 @@ class _ReelPageState extends State<ReelPage> {
   }
 
   Widget _buildReelItem(int index) {
-    final isLiked = ReelStore.likedReels[index] ?? false;
-    final isSaved = ReelStore.savedReels[index] ?? false;
+    final isLiked = likedReels[index] ?? false;
+    final isSaved = savedReels[index] ?? false;
 
     return GestureDetector(
       onTap: () async {
@@ -122,13 +124,15 @@ class _ReelPageState extends State<ReelPage> {
         final c = _controllers[index];
         if (c == null || !c.value.isInitialized) return;
 
+        
+
         setState(() {
           c.value.isPlaying ? c.pause() : c.play();
         });
       },
       onDoubleTap: () {
         setState(() {
-          ReelStore.likedReels[index] = !(ReelStore.likedReels[index] ?? false);
+          likedReels[index] = !isLiked;
         });
       },
       child: Stack(
@@ -148,7 +152,7 @@ class _ReelPageState extends State<ReelPage> {
                   color: isLiked ? Colors.red : Colors.white,
                   onTap: () {
                     setState(() {
-                      ReelStore.likedReels[index] = !isLiked;
+                      likedReels[index] = !isLiked;
                     });
                   },
                 ),
@@ -162,7 +166,7 @@ class _ReelPageState extends State<ReelPage> {
                   label: 'Save',
                   onTap: () {
                     setState(() {
-                      ReelStore.savedReels[index] = !isSaved;
+                      savedReels[index] = !isSaved;
                     });
                   },
                 ),
@@ -181,7 +185,10 @@ class _ReelPageState extends State<ReelPage> {
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [Colors.transparent, Colors.black.withOpacity(0.9)],
+                  colors: [
+                    Colors.transparent,
+                    Colors.black.withOpacity(0.9),
+                  ],
                 ),
               ),
               child: const Column(
@@ -251,18 +258,5 @@ class _ReelPageState extends State<ReelPage> {
         ],
       ),
     );
-  }
-}
-
-class ReelStore {
-  static final Map<int, bool> likedReels = {};
-  static final Map<int, bool> savedReels = {};
-
-  static List<int> getLikedReels() {
-    return likedReels.entries.where((e) => e.value).map((e) => e.key).toList();
-  }
-
-  static List<int> getSavedReels() {
-    return savedReels.entries.where((e) => e.value).map((e) => e.key).toList();
   }
 }
