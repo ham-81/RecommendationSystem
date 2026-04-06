@@ -3,6 +3,7 @@ import torch.nn as nn
 import faiss
 import numpy as np
 import os
+from typing import Optional
 
 # ── paths ──────────────────────────────────────────────────────────────────────
 BASE_DIR       = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -11,6 +12,9 @@ FAISS_PATH     = os.path.join(BASE_DIR, "faiss", "reel_index.faiss")
 IMAGE_EMB      = os.path.join(BASE_DIR, "embeddings", "MicroLens-100k_image_features_CLIPRN50.npy")
 TEXT_EMB       = os.path.join(BASE_DIR, "embeddings", "MicroLens-100k_title_en_text_features_BgeM3.npy")
 VIDEO_EMB      = os.path.join(BASE_DIR, "embeddings", "MicroLens-100k_video_features_VideoMAE.npy")
+
+# Fallback catalog size used when ML artifacts are unavailable.
+DEFAULT_CATALOG_SIZE = 100
 
 # ── model definition ───────────────────────────────────────────────────────────
 class DSSMModel(nn.Module):
@@ -31,25 +35,35 @@ class DSSMModel(nn.Module):
         return self.item_tower(x)
 
 # ── load everything once at startup ───────────────────────────────────────────
-print("Loading embeddings (this may take a moment)...")
-image_emb = np.load(IMAGE_EMB).astype("float32")   # shape: (N, dim1)
-text_emb  = np.load(TEXT_EMB).astype("float32")    # shape: (N, dim2)
-video_emb = np.load(VIDEO_EMB).astype("float32")   # shape: (N, dim3)
+all_embeddings: Optional[np.ndarray] = None
+faiss_index: Optional[faiss.Index] = None
+model: Optional[DSSMModel] = None
+NUM_REELS = DEFAULT_CATALOG_SIZE
+_artifacts_ready = False
 
-# concatenate all 3 modalities → (N, 2816)
-all_embeddings = np.concatenate([image_emb, text_emb, video_emb], axis=1)
-NUM_REELS = all_embeddings.shape[0]
-print(f"  ✓ {NUM_REELS} reels, embedding dim = {all_embeddings.shape[1]}")
+try:
+    print("Loading embeddings (this may take a moment)...")
+    image_emb = np.load(IMAGE_EMB).astype("float32")
+    text_emb = np.load(TEXT_EMB).astype("float32")
+    video_emb = np.load(VIDEO_EMB).astype("float32")
 
-print("Loading DSSM model...")
-model = DSSMModel(input_dim=all_embeddings.shape[1])
-model.load_state_dict(torch.load(MODEL_PATH, map_location="cpu"))
-model.eval()
-print("  ✓ model ready")
+    # concatenate all 3 modalities → (N, 2816)
+    all_embeddings = np.concatenate([image_emb, text_emb, video_emb], axis=1)
+    NUM_REELS = all_embeddings.shape[0]
+    print(f"  ✓ {NUM_REELS} reels, embedding dim = {all_embeddings.shape[1]}")
 
-print("Loading FAISS index...")
-faiss_index = faiss.read_index(FAISS_PATH)
-print(f"  ✓ FAISS ready ({faiss_index.ntotal} vectors)")
+    print("Loading DSSM model...")
+    model = DSSMModel(input_dim=all_embeddings.shape[1])
+    model.load_state_dict(torch.load(MODEL_PATH, map_location="cpu"))
+    model.eval()
+    print("  ✓ model ready")
+
+    print("Loading FAISS index...")
+    faiss_index = faiss.read_index(FAISS_PATH)
+    print(f"  ✓ FAISS ready ({faiss_index.ntotal} vectors)")
+    _artifacts_ready = True
+except Exception as exc:
+    print(f"[WARN] ML artifacts unavailable, using fallback recommender: {exc}")
 
 # ── main function called by app.py ────────────────────────────────────────────
 def recommend(user_sequence: list, top_k: int = 10) -> list:
@@ -57,14 +71,21 @@ def recommend(user_sequence: list, top_k: int = 10) -> list:
     user_sequence : list of reel indices (0-based) the user already watched
     returns       : list of recommended reel indices
     """
+    if top_k <= 0:
+        return []
+
+    # Fail-open behavior for local/dev runs without full ML artifacts.
+    if not _artifacts_ready:
+        return list(range(min(top_k, NUM_REELS)))
+
     if not user_sequence:
         # cold start — return first top_k reels
-        return list(range(top_k))
+        return list(range(min(top_k, NUM_REELS)))
 
     # 1. fetch embeddings for watched reels (skip out-of-range ids)
     valid = [i for i in user_sequence if 0 <= i < NUM_REELS]
     if not valid:
-        return list(range(top_k))
+        return list(range(min(top_k, NUM_REELS)))
 
     # 2. mean-pool → single aggregate embedding
     seq_embs = all_embeddings[valid]                                    # (n, 2816)

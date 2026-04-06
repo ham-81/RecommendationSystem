@@ -25,7 +25,7 @@ class _HomePageState extends State<HomePage> {
  Future<void> fetchReels() async {
   try {
     final response = await http.get(
-      Uri.parse("http://localhost:8000/api/reels/feed"),
+      Uri.parse("http://localhost:8001/api/reels/feed"),
     ).timeout(const Duration(seconds: 5));
 
     if (response.statusCode == 200) {
