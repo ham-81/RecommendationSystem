@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:reel_recommandation/utils/colors.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'dart:async';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -8,6 +11,39 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  List<Map<String, dynamic>> reels = [];
+  bool isLoading = true;
+  final Map<int, bool> likedPosts = {};
+  final Map<int, bool> savedPosts = {};
+
+  @override
+  void initState() {
+    super.initState();
+    fetchReels();
+  }
+
+ Future<void> fetchReels() async {
+  try {
+    final response = await http.get(
+      Uri.parse("http://localhost:8001/api/reels/feed"),
+    ).timeout(const Duration(seconds: 5));
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      setState(() {
+        reels = List<Map<String, dynamic>>.from(data["data"]);
+        isLoading = false;
+      });
+    } else {
+      setState(() => isLoading = false);
+    }
+  } catch (e) {
+    debugPrint("ERROR: $e");
+    setState(() {
+      isLoading = false;
+    });
+  }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -19,21 +55,39 @@ class _HomePageState extends State<HomePage> {
         centerTitle: true,
         title: Image.asset('assets/insta_logo.png', height: 32),
       ),
-      body: CustomScrollView(
-        slivers: [
-          SliverList(
-            delegate: SliverChildBuilderDelegate((context, index) {
-              return Column(
-                children: [_buildInstagramPost(index), SizedBox(height: 8)],
-              );
-            }, childCount: 100),
-          ),
-        ],
-      ),
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator(color: Colors.white))
+          : reels.isEmpty
+              ? const Center(
+                  child: Text("No posts found",
+                      style: TextStyle(color: Colors.white)))
+              : CustomScrollView(
+                  slivers: [
+                    SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) {
+                          return Column(
+                            children: [
+                              _buildInstagramPost(index),
+                              const SizedBox(height: 8)
+                            ],
+                          );
+                        },
+                        childCount: reels.length,
+                      ),
+                    ),
+                  ],
+                ),
     );
   }
 
   Widget _buildInstagramPost(int index) {
+    final reel = reels[index];
+    final caption = reel["caption"] ?? "";
+    final reelId = reel["id"] ?? index;
+    final isLiked = likedPosts[index] ?? false;
+    final isSaved = savedPosts[index] ?? false;
+
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 8.0),
       decoration: BoxDecoration(
@@ -46,12 +100,11 @@ class _HomePageState extends State<HomePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header with User Info
+          // Header
           Padding(
             padding: const EdgeInsets.all(12.0),
             child: Row(
               children: [
-                // Avatar
                 CircleAvatar(
                   radius: 20,
                   backgroundColor: Colors.grey[700],
@@ -65,7 +118,6 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
                 const SizedBox(width: 12),
-                // User Info
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -79,13 +131,13 @@ class _HomePageState extends State<HomePage> {
                         ),
                       ),
                       Text(
-                        '${index + 1}h ago',
-                        style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                        'Reel #$reelId',
+                        style:
+                            TextStyle(color: Colors.grey[500], fontSize: 12),
                       ),
                     ],
                   ),
                 ),
-                // More Options
                 IconButton(
                   icon: Icon(Icons.more_horiz, color: Colors.grey[400]),
                   onPressed: () {},
@@ -94,7 +146,8 @@ class _HomePageState extends State<HomePage> {
               ],
             ),
           ),
-          // Post Image
+
+          // Post Image placeholder with caption overlay
           Container(
             width: double.infinity,
             height: 300,
@@ -103,14 +156,14 @@ class _HomePageState extends State<HomePage> {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  Colors.blue[900]!.withOpacity(0.6),
-                  Colors.purple[900]!.withOpacity(0.6),
+                  Colors.blue[900]!.withValues(alpha: 0.5),
+                  Colors.purple[900]!.withValues(alpha: 0.5),
                 ],
               ),
             ),
             child: Center(
               child: Text(
-                'Post ${index + 1}',
+                caption,
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 24,
@@ -119,55 +172,56 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
           ),
+
           // Action Buttons
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
             child: Row(
               children: [
-                // Like Button
                 IconButton(
                   icon: Icon(
-                    Icons.favorite_border,
-                    color: Colors.grey[400],
+                    isLiked ? Icons.favorite : Icons.favorite_border,
+                    color: isLiked ? Colors.red : Colors.grey[400],
                     size: 24,
                   ),
+                  onPressed: () {
+                    setState(() {
+                      likedPosts[index] = !isLiked;
+                    });
+                  },
+                  splashRadius: 24,
+                ),
+                IconButton(
+                  icon: Icon(Icons.chat_bubble_outline,
+                      color: Colors.grey[400], size: 24),
                   onPressed: () {},
                   splashRadius: 24,
                 ),
-                // Comment Button
                 IconButton(
-                  icon: Icon(
-                    Icons.chat_bubble_outline,
-                    color: Colors.grey[400],
-                    size: 24,
-                  ),
-                  onPressed: () {},
-                  splashRadius: 24,
-                ),
-                // Share Button
-                IconButton(
-                  icon: Icon(
-                    Icons.share_outlined,
-                    color: Colors.grey[400],
-                    size: 24,
-                  ),
+                  icon: Icon(Icons.share_outlined,
+                      color: Colors.grey[400], size: 24),
                   onPressed: () {},
                   splashRadius: 24,
                 ),
                 const Spacer(),
-                // Save Button
                 IconButton(
                   icon: Icon(
-                    Icons.bookmark_border,
-                    color: Colors.grey[400],
+                    isSaved ? Icons.bookmark : Icons.bookmark_border,
+                    color: isSaved ? Colors.white : Colors.grey[400],
                     size: 24,
                   ),
-                  onPressed: () {},
+                  onPressed: () {
+                    setState(() {
+                      savedPosts[index] = !isSaved;
+                    });
+                  },
                   splashRadius: 24,
                 ),
               ],
             ),
           ),
+
           // Likes Count
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -181,6 +235,7 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
           const SizedBox(height: 4),
+
           // Caption
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -196,14 +251,16 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                   TextSpan(
-                    text: 'Amazing moment captured! 📸 #instagram #photography',
-                    style: TextStyle(color: Colors.grey[300], fontSize: 14),
+                    text: caption,
+                    style:
+                        TextStyle(color: Colors.grey[300], fontSize: 14),
                   ),
                 ],
               ),
             ),
           ),
           const SizedBox(height: 8),
+
           // View Comments
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),

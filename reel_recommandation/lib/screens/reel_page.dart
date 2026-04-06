@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'dart:async';
 
 class ReelPage extends StatefulWidget {
   const ReelPage({super.key});
@@ -12,17 +15,8 @@ class _ReelPageState extends State<ReelPage> {
   late final PageController _pageController;
 
   int currentReelIndex = 0;
-
-  final List<int> reels = List.generate(20, (index) => index);
-
-  final List<String> videoPaths = [
-    'assets/videos/reel1.mp4',
-    'assets/videos/reel2.mp4',
-    'assets/videos/reel3.mp4',
-    'assets/videos/reel4.mp4',
-    'assets/videos/reel5.mp4',
-    'assets/videos/reel6.mp4',
-  ];
+  List<Map<String, dynamic>> reels = [];
+  bool isLoading = true;
 
   final Map<int, VideoPlayerController> _controllers = {};
   final Map<int, bool> likedReels = {};
@@ -32,30 +26,43 @@ class _ReelPageState extends State<ReelPage> {
   void initState() {
     super.initState();
     _pageController = PageController();
+    fetchReels();
+  }
 
-    // Load first reel ONLY (no autoplay)
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _initController(0);
-      _preloadReel(1);
+  // ---------------- API ----------------
+
+ Future<void> fetchReels() async {
+  try {
+    final response = await http.get(
+      Uri.parse("http://localhost:8001/api/reels/feed?user_id=1"),
+    ).timeout(const Duration(seconds: 5));
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      setState(() {
+        reels = List<Map<String, dynamic>>.from(data["data"]);
+        isLoading = false;
+      });
+    } else {
+      setState(() => isLoading = false);
+    }
+  } catch (e) {
+    debugPrint("ERROR: $e");
+    setState(() {
+      isLoading = false;
     });
   }
-
-  @override
-  void dispose() {
-    for (final controller in _controllers.values) {
-      controller.dispose();
-    }
-    _pageController.dispose();
-    super.dispose();
-  }
-
+}
   // ---------------- VIDEO CONTROL ----------------
 
   Future<void> _initController(int index) async {
     if (_controllers.containsKey(index)) return;
+    if (index >= reels.length) return;
 
-    final controller = VideoPlayerController.asset(
-      videoPaths[index % videoPaths.length],
+    final videoUrl = reels[index]["video_url"];
+
+    final controller = VideoPlayerController.networkUrl(
+      Uri.parse(videoUrl),
     );
 
     controller.addListener(() {
@@ -85,21 +92,64 @@ class _ReelPageState extends State<ReelPage> {
 
   // ---------------- PAGE CHANGE ----------------
 
+  Future<void> _recordInteraction(int reelId, String eventType) async {
+    try {
+      await http.post(
+        Uri.parse("http://localhost:8001/api/interact"),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "user_id": 1, // Using user 1 for demo
+          "reel_id": reelId,
+          "event_type": eventType,
+        }),
+      );
+    } catch (e) {
+      debugPrint("Failed to record interaction: $e");
+    }
+  }
+
   void _onPageChanged(int index) {
     _pauseAll();
+    setState(() => currentReelIndex = index);
+    _initController(index);
+    _preloadReel(index + 1);
+    
+    final reelId = reels[index]["id"] ?? -1;
+    if (reelId != -1) {
+      _recordInteraction(reelId, "view");
+    }
+  }
 
-    setState(() {
-      currentReelIndex = index;
-    });
-
-    _initController(index);      // load only
-    _preloadReel(index + 1);     // preload next
+  @override
+  void dispose() {
+    for (final controller in _controllers.values) {
+      controller.dispose();
+    }
+    _pageController.dispose();
+    super.dispose();
   }
 
   // ---------------- UI ----------------
 
   @override
   Widget build(BuildContext context) {
+    if (isLoading) {
+      return const Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(child: CircularProgressIndicator(color: Colors.white)),
+      );
+    }
+
+    if (reels.isEmpty) {
+      return const Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(
+          child: Text("No reels found",
+              style: TextStyle(color: Colors.white)),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.black,
       body: PageView.builder(
@@ -114,18 +164,90 @@ class _ReelPageState extends State<ReelPage> {
     );
   }
 
+  String _formatCount(int count) {
+    if (count >= 1000000) return '${(count / 1000000).toStringAsFixed(1)}M';
+    if (count >= 1000) return '${(count / 1000).toStringAsFixed(1)}K';
+    return count.toString();
+  }
+
+  void _showCommentsSheet(BuildContext context, int reelId) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.grey[900],
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.6,
+          minChildSize: 0.4,
+          maxChildSize: 0.9,
+          expand: false,
+          builder: (context, scrollController) {
+            return Column(
+              children: [
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  child: Text(
+                    "Comments",
+                    style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                const Divider(color: Colors.grey),
+                Expanded(
+                  child: ListView.builder(
+                    controller: scrollController,
+                    itemCount: 1, // Placeholder single comment
+                    itemBuilder: (context, index) {
+                      return ListTile(
+                        leading: const CircleAvatar(
+                          backgroundColor: Colors.grey,
+                          child: Icon(Icons.person, color: Colors.white),
+                        ),
+                        title: const Text("user_test", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        subtitle: const Text("Great video! I have tested the comment section successfully.", style: TextStyle(color: Colors.white70)),
+                      );
+                    },
+                  ),
+                ),
+                SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: TextField(
+                      style: const TextStyle(color: Colors.white),
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: Colors.grey[800],
+                        hintText: "Add a comment...",
+                        hintStyle: const TextStyle(color: Colors.grey),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(24),
+                          borderSide: BorderSide.none,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   Widget _buildReelItem(int index) {
     final isLiked = likedReels[index] ?? false;
     final isSaved = savedReels[index] ?? false;
+    final caption = reels[index]["caption"] ?? "";
 
     return GestureDetector(
       onTap: () async {
         await _initController(index);
         final c = _controllers[index];
         if (c == null || !c.value.isInitialized) return;
-
-        
-
         setState(() {
           c.value.isPlaying ? c.pause() : c.play();
         });
@@ -134,6 +256,9 @@ class _ReelPageState extends State<ReelPage> {
         setState(() {
           likedReels[index] = !isLiked;
         });
+        if (!isLiked) {
+           _recordInteraction(reels[index]["id"] ?? 0, "like");
+        }
       },
       child: Stack(
         fit: StackFit.expand,
@@ -148,18 +273,27 @@ class _ReelPageState extends State<ReelPage> {
               children: [
                 _iconButton(
                   icon: isLiked ? Icons.favorite : Icons.favorite_border,
-                  label: '1.2K',
+                  label: _formatCount(reels[index]["like_count"] ?? 0),
                   color: isLiked ? Colors.red : Colors.white,
                   onTap: () {
                     setState(() {
                       likedReels[index] = !isLiked;
                     });
+                     if (!isLiked) {
+                       _recordInteraction(reels[index]["id"] ?? 0, "like");
+                     }
                   },
                 ),
                 const SizedBox(height: 24),
-                _iconButton(icon: Icons.chat_bubble_outline, label: '324'),
+                _iconButton(
+                  icon: Icons.chat_bubble_outline, 
+                  label: _formatCount(reels[index]["comment_count"] ?? 0),
+                  onTap: () {
+                    _showCommentsSheet(context, reels[index]["id"] ?? 0);
+                  },
+                ),
                 const SizedBox(height: 24),
-                _iconButton(icon: Icons.share_outlined, label: 'Share'),
+                _iconButton(icon: Icons.share_outlined, label: 'Share', onTap: () {}),
                 const SizedBox(height: 24),
                 _iconButton(
                   icon: isSaved ? Icons.bookmark : Icons.bookmark_border,
@@ -168,6 +302,9 @@ class _ReelPageState extends State<ReelPage> {
                     setState(() {
                       savedReels[index] = !isSaved;
                     });
+                    if (!isSaved) {
+                        _recordInteraction(reels[index]["id"] ?? 0, "save");
+                    }
                   },
                 ),
               ],
@@ -187,25 +324,25 @@ class _ReelPageState extends State<ReelPage> {
                   end: Alignment.bottomCenter,
                   colors: [
                     Colors.transparent,
-                    Colors.black.withOpacity(0.9),
+                    Colors.black.withValues(alpha: .5),
                   ],
                 ),
               ),
-              child: const Column(
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
+                  const Text(
                     'user_1 • Follow',
                     style: TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  SizedBox(height: 8),
+                  const SizedBox(height: 8),
                   Text(
-                    'Amazing reel content 🎬 #reels #flutter',
-                    style: TextStyle(color: Colors.white, fontSize: 13),
+                    caption,
+                    style: const TextStyle(color: Colors.white, fontSize: 13),
                   ),
                 ],
               ),
@@ -226,7 +363,7 @@ class _ReelPageState extends State<ReelPage> {
     }
 
     return FittedBox(
-      fit: BoxFit.cover,
+      fit: BoxFit.contain,
       child: SizedBox(
         width: controller.value.size.width,
         height: controller.value.size.height,
