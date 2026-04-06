@@ -59,10 +59,13 @@ class _BottomNavigationBarWidgetState extends State<BottomNavigationBarWidget> {
           });
         },
       ),
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: <Widget>[HomePage(), SearchScreen(), ReelPage(), NotificationScreen(), ProfilePage()],
-      ),
+      body: <Widget>[
+        const HomePage(),
+        const SearchScreen(),
+        const ReelPage(),
+        const NotificationScreen(),
+        const ProfilePage()
+      ][_selectedIndex],
     );
   }
 }

@@ -40,7 +40,7 @@ async def get_user_history(user_id: int) -> list:
 async def get_reel_details(reel_ids: list) -> list:
     """
     Fetch full reel info from reels collection for given reel_ids.
-    Falls back to placeholder if reel not found in DB.
+    Ignores recommendations that do not exist yet in DB.
     """
     reels = []
     for reel_id in reel_ids:
@@ -54,16 +54,6 @@ async def get_reel_details(reel_ids: list) -> list:
                 "like_count":  doc.get("like_count", 0),
                 "comment_count": doc.get("comment_count", 0),
             })
-        else:
-            # reel not in DB yet — return basic info
-            reels.append({
-                "id":          reel_id,
-                "video_url":   f"assets/videos/reel{reel_id}.mp4",
-                "caption":     f"Reel {reel_id}",
-                "creator":     "",
-                "like_count":  0,
-                "comment_count": 0,
-            })
     return reels
 
 
@@ -76,6 +66,13 @@ async def get_feed(user_id: int = None):
     if user_id is not None:
         user_history = await get_user_history(user_id)
     recommended_ids = recommend(user_history)
+
+    print("\n" + "="*50)
+    print("🧠 ML Recommendation Engine Triggered!")
+    print(f"👤 Target User ID:      {user_id}")
+    print(f"📖 Database History:    {user_history}")
+    print(f"🎯 Model Output Reel IDs: {recommended_ids}")
+    print("="*50 + "\n")
 
     # Fetch real reel data from MongoDB (with Cloudinary video URLs)
     reels = await get_reel_details(recommended_ids)
@@ -110,3 +107,26 @@ async def get_recommendations(user_id: int):
 @app.get("/health")
 async def health():
     return {"status": "ok"}
+
+from pydantic import BaseModel
+from datetime import datetime, timezone
+
+class InteractionEvent(BaseModel):
+    user_id: int
+    reel_id: int
+    event_type: str
+    watch_time_sec: float = 0.0
+
+@app.post("/api/interact")
+async def record_interaction(interaction: InteractionEvent):
+    doc = interaction.dict()
+    now_ts = datetime.now(timezone.utc)
+    doc["timestamp"] = now_ts
+    doc["event_timestamp"] = now_ts
+    doc["event"] = doc["event_type"]
+    doc["session_id"] = f"session_u{doc['user_id']}_live"
+    doc["context"] = {"source": "live-app"}
+    doc["interaction_id"] = f"u{doc['user_id']}-r{doc['reel_id']}-{doc['event_type']}-{int(now_ts.timestamp() * 1000)}"
+    # Simple insert so the ML model history sees it instantly
+    await interact_col.insert_one(doc)
+    return {"success": True, "message": "Interaction saved"}

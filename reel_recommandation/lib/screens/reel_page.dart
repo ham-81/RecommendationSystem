@@ -34,7 +34,7 @@ class _ReelPageState extends State<ReelPage> {
  Future<void> fetchReels() async {
   try {
     final response = await http.get(
-      Uri.parse("http://localhost:8001/api/reels/feed"),
+      Uri.parse("http://localhost:8001/api/reels/feed?user_id=1"),
     ).timeout(const Duration(seconds: 5));
 
     if (response.statusCode == 200) {
@@ -92,11 +92,32 @@ class _ReelPageState extends State<ReelPage> {
 
   // ---------------- PAGE CHANGE ----------------
 
+  Future<void> _recordInteraction(int reelId, String eventType) async {
+    try {
+      await http.post(
+        Uri.parse("http://localhost:8001/api/interact"),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "user_id": 1, // Using user 1 for demo
+          "reel_id": reelId,
+          "event_type": eventType,
+        }),
+      );
+    } catch (e) {
+      debugPrint("Failed to record interaction: $e");
+    }
+  }
+
   void _onPageChanged(int index) {
     _pauseAll();
     setState(() => currentReelIndex = index);
     _initController(index);
     _preloadReel(index + 1);
+    
+    final reelId = reels[index]["id"] ?? -1;
+    if (reelId != -1) {
+      _recordInteraction(reelId, "view");
+    }
   }
 
   @override
@@ -143,6 +164,80 @@ class _ReelPageState extends State<ReelPage> {
     );
   }
 
+  String _formatCount(int count) {
+    if (count >= 1000000) return '${(count / 1000000).toStringAsFixed(1)}M';
+    if (count >= 1000) return '${(count / 1000).toStringAsFixed(1)}K';
+    return count.toString();
+  }
+
+  void _showCommentsSheet(BuildContext context, int reelId) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.grey[900],
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.6,
+          minChildSize: 0.4,
+          maxChildSize: 0.9,
+          expand: false,
+          builder: (context, scrollController) {
+            return Column(
+              children: [
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  child: Text(
+                    "Comments",
+                    style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                const Divider(color: Colors.grey),
+                Expanded(
+                  child: ListView.builder(
+                    controller: scrollController,
+                    itemCount: 1, // Placeholder single comment
+                    itemBuilder: (context, index) {
+                      return ListTile(
+                        leading: const CircleAvatar(
+                          backgroundColor: Colors.grey,
+                          child: Icon(Icons.person, color: Colors.white),
+                        ),
+                        title: const Text("user_test", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        subtitle: const Text("Great video! I have tested the comment section successfully.", style: TextStyle(color: Colors.white70)),
+                      );
+                    },
+                  ),
+                ),
+                SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: TextField(
+                      style: const TextStyle(color: Colors.white),
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: Colors.grey[800],
+                        hintText: "Add a comment...",
+                        hintStyle: const TextStyle(color: Colors.grey),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(24),
+                          borderSide: BorderSide.none,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   Widget _buildReelItem(int index) {
     final isLiked = likedReels[index] ?? false;
     final isSaved = savedReels[index] ?? false;
@@ -161,6 +256,9 @@ class _ReelPageState extends State<ReelPage> {
         setState(() {
           likedReels[index] = !isLiked;
         });
+        if (!isLiked) {
+           _recordInteraction(reels[index]["id"] ?? 0, "like");
+        }
       },
       child: Stack(
         fit: StackFit.expand,
@@ -175,18 +273,27 @@ class _ReelPageState extends State<ReelPage> {
               children: [
                 _iconButton(
                   icon: isLiked ? Icons.favorite : Icons.favorite_border,
-                  label: '1.2K',
+                  label: _formatCount(reels[index]["like_count"] ?? 0),
                   color: isLiked ? Colors.red : Colors.white,
                   onTap: () {
                     setState(() {
                       likedReels[index] = !isLiked;
                     });
+                     if (!isLiked) {
+                       _recordInteraction(reels[index]["id"] ?? 0, "like");
+                     }
                   },
                 ),
                 const SizedBox(height: 24),
-                _iconButton(icon: Icons.chat_bubble_outline, label: '324'),
+                _iconButton(
+                  icon: Icons.chat_bubble_outline, 
+                  label: _formatCount(reels[index]["comment_count"] ?? 0),
+                  onTap: () {
+                    _showCommentsSheet(context, reels[index]["id"] ?? 0);
+                  },
+                ),
                 const SizedBox(height: 24),
-                _iconButton(icon: Icons.share_outlined, label: 'Share'),
+                _iconButton(icon: Icons.share_outlined, label: 'Share', onTap: () {}),
                 const SizedBox(height: 24),
                 _iconButton(
                   icon: isSaved ? Icons.bookmark : Icons.bookmark_border,
@@ -195,6 +302,9 @@ class _ReelPageState extends State<ReelPage> {
                     setState(() {
                       savedReels[index] = !isSaved;
                     });
+                    if (!isSaved) {
+                        _recordInteraction(reels[index]["id"] ?? 0, "save");
+                    }
                   },
                 ),
               ],
@@ -253,7 +363,7 @@ class _ReelPageState extends State<ReelPage> {
     }
 
     return FittedBox(
-      fit: BoxFit.cover,
+      fit: BoxFit.contain,
       child: SizedBox(
         width: controller.value.size.width,
         height: controller.value.size.height,
